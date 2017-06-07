@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.order.OrderMapper">
+
+	<insert id="insert" parameterType="Order">
+		INSERT INTO `Order` (SystemDomain, EndUser, OrderNo, ExternalOrderNo,PaymentOrderNo, ExtraId, Channel, Device, TypeCode,
+		PlatType, NotifyURL, PrivateInfo, PayPoint, PayPointName,MerchType,Game,GameName,KeyId,ExtraPayTypeInfo,Phone,PayAgent,
+		PayPointMoney, Count, Amount, CurrencyType, VersionCode,PayType,Status, CreateTime, UpdateTime)
+		VALUES
+		(#{SystemDomain},#{EndUser}, #{OrderNo}, #{ExternalOrderNo},#{PaymentOrderNo}, #{ExtraId}, #{Channel}, #{Device}, #{TypeCode}, 
+		#{PlatType}, #{NotifyURL}, #{PrivateInfo}, #{PayPoint}, #{PayPointName},#{MerchType},#{Game},#{GameName},#{KeyId},#{ExtraPayTypeInfo},#{Phone},#{PayAgent},
+		#{PayPointMoney}, #{Count}, #{Amount}, #{CurrencyType}, #{VersionCode}, #{PayType},#{Status},now(),now());
+	</insert>
+	
+	<!-- 根据订单号查询订单信息，参数flag和orderNo是通过注解的方式传递过来，这里不需要用parameterType来接收 -->
+	<select id="queryByNo" resultType="Order">
+		select * from `Order` where 
+		<if test="flag == 'OrderNo'">OrderNo = #{orderNo}</if>
+		<if test="flag == 'PaymentOrderNo'">PaymentOrderNo like CONCAT('%', #{orderNo}, '%') </if>
+		<if test="query == 'true'">and Status = #{state}</if>
+		
+	</select>
+	
+	<!-- 根据支付渠道订单号更新订单 -->
+	<update id="update" parameterType="Order">
+		update `Order` set Status = #{Status},PaymentOrderNo = #{PaymentOrderNo},PayType = #{PayType}, UpdateTime = now() where OrderNo = #{OrderNo}
+	</update>
+	
+	<!-- 查询某个用户当天消费总额 -->
+	<select id="queryTotalMoney" parameterType="int" resultType="String">
+		select sum(amount) from `Order` where EndUser = #{userId} and Status = 'SUCCESS' and date(CreateTime) = date(sysdate()); 
+	</select>
+
+</mapper>

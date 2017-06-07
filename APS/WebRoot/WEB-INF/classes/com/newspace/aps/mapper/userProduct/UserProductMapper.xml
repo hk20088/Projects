@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.userProduct.UserProductMapper">
+
+	<select id="queryAsset" parameterType="UserProduct" resultType="UserProduct">
+		select * from UserProduct where EndUser = #{EndUser} and SystemDomain = #{SystemDomain} and Type = #{Type} and Channel = #{Channel}
+	</select>
+	
+	<!-- 添加用户资产信息 ，这里给用户添加VIP天数，以后如果要添加其它资产，比如游戏，可以在这里扩展-->
+	<insert id="insertAsset" parameterType="UserProduct">
+		insert into UserProduct
+		(EndUser,SystemDomain,Type,ProId,ClassHour,TransactionTime,ExpireTime,Status,Channel,CreateTime,UpdateTime) 
+		values
+		(#{EndUser},#{SystemDomain},#{Type},#{ProId},#{ClassHour},now(),#{ExpireTime},#{Status},#{Channel}, now(),now());
+	</insert>
+	
+	<!-- 修改用户资产信息，这里给用户添加VIP天数，以后如果要修改其它资产，比如游戏，可以在这里扩展 -->
+	<update id="updateAsset" parameterType="UserProduct">
+		update UserProduct up 
+		set 
+		up.ExpireTime=#{ExpireTime},up.UpdateTime=now(),up.TransactionTime=now(),up.ProId=#{ProId},up.ClassHour=#{ClassHour} 
+		where EndUser = #{EndUser}
+		and SystemDomain = #{SystemDomain}
+		and Channel = #{Channel}
+	</update>
+
+</mapper>

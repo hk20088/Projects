@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.goods.GoodsMapper">
+
+	<select id="queryGoods" parameterType="int" resultType="Goods">
+		select Id,GoodsTitle,Type,PeriodType,PeriodCount,PriceCurrency,ExtraId from Goods where Id = #{Id}
+	</select>
+
+</mapper>

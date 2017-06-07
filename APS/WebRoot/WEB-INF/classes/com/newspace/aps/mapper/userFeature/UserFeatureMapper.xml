@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.userFeature.UserFeatureMapper">
+
+	<select id="queryMerchInfoSwitch" parameterType="UserFeature" resultType="UserFeature">
+		select * from UserFeatureItem	 where EndUser = #{EndUser} and SystemDomain = #{SystemDomain} and FeatureCode = 'IOM'
+	</select>
+
+</mapper>

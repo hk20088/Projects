@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.chanPayType.ChanPayTypeMapper">
+
+	<select id="queryChanPayInfo" parameterType="Device" resultType="ChanPayType">
+		SELECT
+			pt.PayCode,
+			cpt.Priority,
+			cpt.NextStep
+		FROM
+			PayType pt,
+			PayTypeFeature pf,
+			ChannelPayType cpt
+		WHERE
+			cpt.Channel = #{Channel}
+		AND cpt. STATUS = 'N'
+		AND pt. STATUS = 'N'
+		AND pf.FeatureCode = 'PlatType'
+		AND pf.FeatureValue = #{PlatType}
+		AND cpt.PayType = pt.Id and pf.PayType = pt.Id;
+	</select>
+
+</mapper>

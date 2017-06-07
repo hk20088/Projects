@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.newspace.aps.mapper.payPoint.PayPointMapper">
+
+	<select id="queryPayPoint" parameterType="int" resultType="PayPoint">
+		SELECT
+			pp.id,
+			pp.Name,
+			pp.Price,
+			pp.Game,
+			g.Title GameName
+		FROM
+			PayPoint pp,
+			Game g
+		WHERE
+			pp.Id = #{PayPoint}
+			and pp.Game = g.Id;
+	</select>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+	namespace：必须与对应的接口全类名一致
+	id:必须与对应接口的某个对应的方法名一致
+ -->
+<mapper namespace="com.newspace.aps.mapper.userAccount.UserAccountMapper">
+	
+	<!-- 根据用户ID查询用户账户信息 -->
+	<select id="queryAccount" parameterType="int" resultType="UserAccount">
+		select * from UserAccount where EndUser = #{userId} and SystemDomain = #{systemDomain}
+	</select>
+	
+	<!-- 更新用户账户信息 -->
+	<update id="updateAccount" parameterType="UserAccount">
+		update UserAccount set Coin = #{Coin}, Point = #{Point}, Diamond = #{Diamond}, UpdateTime = now() where Id = #{Id}
+	</update>
+	
+	<!-- 新增用户账户信息 -->
+	<insert id="insertAccount" parameterType="UserAccount">
+		insert into UserAccount(EndUser, SystemDomain, Coin, Point, Diamond, CreateTime, UpdateTime) values(#{EndUser}, #{SystemDomain}, #{Coin}, #{Point}, #{Diamond}, now(), now());
+	</insert>
+	
+</mapper>
