@@ -1,7 +1,6 @@
 
 # 使用Ant脚本，自动构建、部署项目
 
-VersionTask.java是版本控制的源代码，对应 releaseversion.jar
 
 ## 前言
 为了规范研发流程，避免研发人员重复做无意义的事情，现利用Ant实现全自动化打包功能。开发人员提交代码后，由研发人员（开发或测试）执行脚本便可以自动构建、打包项目并上传到SVN，由测试人员适时部署到测试环境进行测试，测试通过后，可将最终release版本递交给运维正式上线。
@@ -26,3 +25,7 @@ VersionTask.java是版本控制的源代码，对应 releaseversion.jar
 3、执行命令：ant -buildfile <build脚本名>，回车即可  
 例：ant -buildfile build_AUS.xml  
 如果build脚本为默认名称build.xml，则可直接输入命令 ant 回车执行。  
+
+## 备注
+VersionTask.java是版本控制的源代码，对应 releaseversion.jar。  
+具体项目可根据具体要求，修改版本号的生成规则，然后打成jar包即可。
