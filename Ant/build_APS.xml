@@ -1,0 +1,214 @@
+<!-- 
+@description 用于通过svn提版本的ant构建文件， 提版本时根据项目名称从trunk上下载最新的文件，编译打包之后将trunk上的文件在branch上开启一个分支，
+ 最后将编译打包之后最终发布的包、配置文件等上传到svn的release上。上传到branch和release的项目名称均由版本号决定
+ 版本号的生成规则：
+ 1、根据大版本号(mainVersion)匹配$(docs.file.dir)下的部署文档
+ 2、如果匹配到mainVersion系列文档，则取出此系统版本号最大的文档的版本号，当作本次版本的版本号
+ 	例:mainVersion=5.01，则会去匹配版本号为V5.01*的所有文档，假设匹配出两个版本号为：V5.01.11，V5.01.12，则取较大的版本号即V5.01.12当做本次版本的版本号
+ 	2.1 生成新的版本号(在本次版本号上加1，接上面的例子，新的版本号则为：V5.01.13)
+ 	2.2 根据新版本号，生成对应的新脚本文件和新部署文档：APS_V5.01.14.sql, APS_部署文档_V5.01.14.xls
+ 3、 如果没有匹配到mainVersion系统文档，则本次版本的版本号为mainVersion后面追加俩0
+ 	例：mainVersion=5.01，则本次版本号为：5.01.00
+ 	3.1 新的版本号即为:5.01.01，生成新的脚本文件和新部署文档：APS_V5.01.01, APS_部署文档_V5.01.01.xls
+ 备注：大版本号格式为一位整数，或x.xx
+@author huqili
+@date 2016年11月15日
+-->
+<project default="import to release" name="release project">
+	<!-- svn用户名 -->
+	<property name="svn.user" value="huqili" />
+	<!-- svn登陆密码 -->
+	<property name="svn.password" value="huqili" />
+	<!-- 设置大版本号 -->
+	<property name="mainVersion" value="1.00"/>
+	<!-- 是否需要生成新的脚本文件，即打版本时是否需要在db_script/modify下生成下一个版本的脚本文件，默认创建(true)-->
+	<property name="create_db_script" value="false"/>
+	
+	
+	
+	<!-- 项目名称 -->
+	<property name="project.name" value="APS" />
+	<!-- 项目代码 -->
+	<property name="project.short.name" value="APS" />
+	<!-- 生成下个版本的对比文件名，即根据这个文件的最近版本号，生成下一个版本 -->
+	<property name="project.version.name" value="${project.short.name}_部署文档" />
+	<!-- svn资料库的URL -->
+	<property name="svn.res" value="http://serversvn:888/svn/T-one" />
+	<!-- svn的trunk目录的url -->
+	<property name="svn.trunk.path" value="${svn.res}/trunk" />
+	<!-- svn的branch目录的url -->
+	<property name="svn.branch.path" value="${svn.res}/branch" />
+	<!-- svn的release目录的url -->
+	<property name="svn.release.path" value="${svn.res}/release" />
+
+	<!-- 本地项目各文件目录 -->
+	<property name="base.dir" value="../" />
+	<property name="temp" value="../ant/temp" />
+	<property name="war.name" value="${project.name}.war" />
+	<property name="dir.config" value="config" />
+	<!--<property name="dir.db_script" value="db_script" />-->
+	<property name="dir.docs" value="docs" />
+	<property name="docsFileSuffix" value=".xls"/>
+	<property name="dir.thrift" value="thrift" />
+	<property name="dir.src" value="src" />
+	<property name="dir.web" value="WebRoot" />
+	<property name="dir.lib" value="${dir.web}/WEB-INF/lib" />
+	<property name="dir.compile_lib" value="compile_lib" />
+	<property name="export.home" value="${temp}/${project.name}" />
+	<property name="release.home" value="${temp}/release" />
+	
+	<!-- 脚本文件所在路径 -->
+	<property name="db.file.dir" value="${base.dir}/${dir.db_script}/modify" />
+	<property name="docs.file.dir" value="${export.home}/${dir.docs}/modify" />
+	
+
+	<!-- 定义ant相关jar包 -->
+	<path id="svnant.lib">
+		<fileset dir="${base.dir}/ant/antlib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<path id="classpath">
+		<fileset dir="${export.home}/${dir.lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<!-- 定义编译时的classpath -->
+	<path id="compile_classpath">
+		<fileset dir="${export.home}/${dir.compile_lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	
+	
+
+
+	<!-- 定义导入导出的工具  svnkit="true" 代表使用svnkit来操作SVN； 如果javahl 和 svnkit都设置为 false，则使用本机上的SVN client -->
+	<typedef resource="org/tigris/subversion/svnant/svnantlib.xml" classpathref="svnant.lib" />
+	<svnSetting id="svnparams" username="${svn.user}" password="${svn.password}" javahl="false" svnkit="true"/>
+
+	<!-- 初始化目录: 删除缓存目录 -->
+	<target name="init">
+		<echo>delete temp dirs...</echo>
+		<delete dir="${temp}" includeemptydirs="true" verbose="true" />
+		<echo>delete temp dirs finished...</echo>
+	</target>
+
+	<!-- 从SVN主目录导出最新原代码  这里用export而不是check out 区别：check out 会将svn信息检出，export只会导出最新版本-->
+	<target name="export" depends="init">
+		<echo>export files from svn trunk...</echo>
+		<svn refid="svnparams">
+			<export srcUrl="${svn.trunk.path}/${project.name}" destPath="${export.home}" revision="HEAD" />
+		</svn>
+		<echo>export files finished...</echo>
+	
+		
+	</target>
+
+	<!-- 设置版本号 -->
+	<target name="create versionCode" depends="export">
+		<!-- 生成当前版本号，可以修改VersionTask类来改变版本号的生成规则 -->	
+		<taskdef name="version" classname="com.newspace.common.svnversion.VersionTask" classpathref="svnant.lib" />
+		<version versionfiledir="${docs.file.dir}" refid="version" />	
+		
+		<!--生成下一个版本文件，并上传到SVN-->
+		<taskdef name="nextVersion" classname="com.newspace.common.svnversion.VersionTask" classpathref="svnant.lib" />
+		<version versionfiledir="${docs.file.dir}" refid="nextVersion" />	
+		<echo>Current Version: ${version}</echo>
+		
+		<!-- 将下一个版本文件上传到SVN -->
+		<echo>import next docs file to SVN...</echo>
+		<svn refid="svnparams">
+			<import path="${docs.file.dir}/${project.version.name}_${nextVersion}${docsFileSuffix}" recurse="true" url="${svn.trunk.path}/${project.name}/${dir.docs}/modify/${project.version.name}_${nextVersion}${docsFileSuffix}" message="create the next docs file" />
+		</svn>
+		<echo>import next docs file to SVN finished...</echo>
+		
+	</target>
+
+	<!-- 打包 -->
+	<target name="build war" depends="create versionCode">
+		<echo>init release dirs...</echo>
+		<mkdir dir="${release.home}/${dir.config}" />
+		<!--<mkdir dir="${release.home}/${dir.db_script}" />-->
+		<mkdir dir="${release.home}/${dir.docs}" />
+		<mkdir dir="${release.home}/${dir.thrift}" />
+		<mkdir dir="${release.home}/temp" />
+		<mkdir dir="${release.home}/temp/WEB-INF" />
+		<mkdir dir="${release.home}/temp/WEB-INF/classes" />
+		<mkdir dir="${release.home}/temp/WEB-INF/lib" />
+		
+		<echo>copy files to release dirs...</echo>
+		<copy todir="${release.home}/${dir.config}">
+			<fileset dir="${export.home}/${dir.config}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+
+		<copy todir="${release.home}/${dir.docs}">
+			<fileset dir="${export.home}/${dir.docs}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+		<copy todir="${release.home}/${dir.thrift}">
+			<fileset dir="${export.home}/${dir.thrift}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+		<copy todir="${release.home}/temp">
+			<fileset dir="${export.home}/${dir.web}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+		<echo>copy files to release dirs finished...</echo>
+		
+		
+		<!-- 编译源文件 -->
+		<echo>compile java file</echo>
+		<javac destdir="${release.home}/temp/WEB-INF/classes" srcdir="${export.home}/${dir.src}" includeantruntime="false" encoding="utf-8" verbose="no" debug="true" fork="false" failonerror="false" nowarn="true">
+			<classpath refid="classpath" />
+			<classpath refid="compile_classpath" />
+		</javac>
+		<echo>compile java file finished...</echo>
+		
+		<!-- 将源代码目录里的其它文件拷贝到release目录（比如配置文件） -->
+		<copy todir="${release.home}/temp/WEB-INF/classes">
+			<fileset dir="${export.home}/${dir.src}">
+				<exclude name="**/*.java" />
+			</fileset>
+		</copy>
+		
+		<!-- 将编译文件打包war包 -->
+		<echo>Hit the project into a war package...</echo>
+		<jar destfile="${release.home}/${war.name}" basedir="${release.home}/temp" index="true" />
+		<echo>Hit the project into a war package finish...</echo>
+	</target>
+
+	<!-- 将当前源文件导入到分支目录-->
+	<target name="import to branch" depends="build war">
+		<echo>import source file to branch...</echo>
+		<svn refid="svnparams">
+			<mkdir url="${svn.branch.path}/${project.name}/${project.name}_${version}" message="create branch project dir" makeParents="true" />
+			<import path="${export.home}" recurse="true" url="${svn.branch.path}/${project.name}/${project.name}_${version}" message="create a branch" />
+		</svn>
+		<echo>import source file to branch finished...</echo>
+	</target>
+
+	<!-- 释放版本，并删除缓存文件 -->
+	<target name="import to release" depends="import to branch">
+		<echo>release project...</echo>
+		<svn refid="svnparams">
+			<mkdir url="${svn.release.path}/${project.name}/${project.name}_${version}" message="create release project dir" makeParents="true" />
+			<import path="${release.home}" recurse="true" url="${svn.release.path}/${project.name}/${project.name}_${version}" message="commit release file to release path" />
+		</svn>
+		<echo>release finished...</echo>
+		<delete dir="${temp}" includeemptydirs="true" />
+		<echo>release patch success.</echo>
+		<echo>project name:${project.name}</echo>
+		<echo>patch version :${version}</echo>
+		<echo>release path:${svn.release.path}/${project.name}/${project.name}_${version}</echo>
+		<echo>branch path:${svn.branch.path}/${project.name}/${project.name}_${version}</echo>
+	</target>
+
+</project>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
